@@ -1,0 +1,109 @@
+#include <stdio.h>
+#include "driver/gpio.h"
+#include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
+#include "freertos/semphr.h"
+#include "esp_log.h"
+
+#define PIN_ROJO    33
+#define PIN_VERDE   25
+#define PIN_AZUL    26
+#define TAM_PILA    (1024 * 2)
+#define RETARDO_ROJO 1000
+#define RETARDO_VERDE 2000
+
+SemaphoreHandle_t mutexGlobal = NULL;
+
+const char *LOG_TAG = "RecursoCompartido";
+
+esp_err_t configurarLeds(void);
+esp_err_t crearTareas(void);
+esp_err_t manejarRecursoCompartido(int pinLed);
+void tareaRoja(void *param);
+void tareaVerde(void *param);
+
+void app_main(void)
+{
+    mutexGlobal = xSemaphoreCreateMutex();
+
+    configurarLeds();
+    crearTareas();
+}
+
+esp_err_t configurarLeds(void)
+{
+    gpio_reset_pin(PIN_ROJO);
+    gpio_set_direction(PIN_ROJO, GPIO_MODE_OUTPUT);
+
+    gpio_reset_pin(PIN_VERDE);
+    gpio_set_direction(PIN_VERDE, GPIO_MODE_OUTPUT);
+
+    gpio_reset_pin(PIN_AZUL);
+    gpio_set_direction(PIN_AZUL, GPIO_MODE_OUTPUT);
+
+    return ESP_OK;
+}
+
+esp_err_t crearTareas(void)
+{
+    static uint8_t dummyParam;
+    TaskHandle_t manejador = NULL;
+
+    xTaskCreatePinnedToCore(tareaRoja,
+                            "tareaRoja",
+                            TAM_PILA,
+                            &dummyParam,
+                            1,
+                            &manejador,
+                            0);
+
+    xTaskCreatePinnedToCore(tareaVerde,
+                            "tareaVerde",
+                            TAM_PILA,
+                            &dummyParam,
+                            1,
+                            &manejador,
+                            1);
+
+    return ESP_OK;
+}
+
+esp_err_t manejarRecursoCompartido(int pinLed)
+{
+    for (size_t i = 0; i < 8; i++)
+    {
+        vTaskDelay(pdMS_TO_TICKS(400));
+        gpio_set_level(pinLed, 1);
+        vTaskDelay(pdMS_TO_TICKS(400));
+        gpio_set_level(pinLed, 0);
+    }
+    return ESP_OK;
+}
+
+void tareaRoja(void *param)
+{
+    while (1)
+    {
+        if (xSemaphoreTake(mutexGlobal, pdMS_TO_TICKS(100)))
+        {
+            ESP_LOGE(LOG_TAG, "Tarea Roja obtuvo el recurso");
+            manejarRecursoCompartido(PIN_ROJO);
+            xSemaphoreGive(mutexGlobal);
+        }
+        vTaskDelay(pdMS_TO_TICKS(RETARDO_ROJO));
+    }
+}
+
+void tareaVerde(void *param)
+{
+    while (1)
+    {
+        if (xSemaphoreTake(mutexGlobal, pdMS_TO_TICKS(100)))
+        {
+            ESP_LOGI(LOG_TAG, "Tarea Verde obtuvo el recurso");
+            manejarRecursoCompartido(PIN_VERDE);
+            xSemaphoreGive(mutexGlobal);
+        }
+        vTaskDelay(pdMS_TO_TICKS(RETARDO_VERDE));
+    }
+}
