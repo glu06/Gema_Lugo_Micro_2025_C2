@@ -1,0 +1,19 @@
+#include <stdio.h>
+
+int main(void)
+{
+    // Declaración e inicialización de un arreglo de caracteres
+    char arrayChar[3] = { 'X', 'Y', 'Z' };
+    char *ptrChar = &arrayChar[0];
+
+    for (int contador = 0; contador < 3; contador++)
+    {
+        printf("La dirección de arrayChar[%d] es %p\n", contador, (void*)(ptrChar + contador));
+        printf("El valor almacenado en arrayChar[%d] es '%c'\n", contador, *(ptrChar + contador));
+    }
+
+    return 0;
+}
+
+
+
