@@ -1,0 +1,108 @@
+#include <stdio.h>
+#include "driver/gpio.h"
+#include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
+#include "freertos/semphr.h"
+#include "esp_log.h"
+
+#define PIN_ROJO    33
+#define PIN_VERDE   25
+#define PIN_AZUL    26
+#define TAM_STACK   (1024 * 2)
+#define RETARDO_ROJO 400
+#define RETARDO_VERDE 2000
+
+SemaphoreHandle_t semaforo = NULL;
+
+const char *LOG_TAG = "SistemaLED_Sem";
+
+esp_err_t configurarLeds(void);
+esp_err_t crearTareas(void);
+void tareaRoja(void *param);
+void tareaVerde(void *param);
+
+void app_main(void)
+{
+    semaforo = xSemaphoreCreateBinary();
+
+    configurarLeds();
+    crearTareas();
+}
+
+esp_err_t configurarLeds(void)
+{
+    gpio_reset_pin(PIN_ROJO);
+    gpio_set_direction(PIN_ROJO, GPIO_MODE_OUTPUT);
+
+    gpio_reset_pin(PIN_VERDE);
+    gpio_set_direction(PIN_VERDE, GPIO_MODE_OUTPUT);
+
+    gpio_reset_pin(PIN_AZUL);
+    gpio_set_direction(PIN_AZUL, GPIO_MODE_OUTPUT);
+
+    return ESP_OK;
+}
+
+esp_err_t crearTareas(void)
+{
+    static uint8_t parametroDummy;
+    TaskHandle_t manejadorTarea = NULL;
+
+    xTaskCreatePinnedToCore(tareaRoja,
+                            "tareaRoja",
+                            TAM_STACK,
+                            &parametroDummy,
+                            1,
+                            &manejadorTarea,
+                            0);
+
+    xTaskCreatePinnedToCore(tareaVerde,
+                            "tareaVerde",
+                            TAM_STACK,
+                            &parametroDummy,
+                            1,
+                            &manejadorTarea,
+                            1);
+
+    return ESP_OK;
+}
+
+void tareaRoja(void *param)
+{
+    while (1)
+    {
+        for (uint32_t i = 0; i < 8; i++)
+        {
+            vTaskDelay(pdMS_TO_TICKS(RETARDO_ROJO / 2));
+            gpio_set_level(PIN_ROJO, 1);
+
+            ESP_LOGW(LOG_TAG, "LED Rojo encendido, liberando semáforo");
+
+            xSemaphoreGive(semaforo);  // Señal para tarea verde
+
+            vTaskDelay(pdMS_TO_TICKS(RETARDO_ROJO / 2));
+            gpio_set_level(PIN_ROJO, 0);
+        }
+    }
+}
+
+void tareaVerde(void *param)
+{
+    while (1)
+    {
+        if (xSemaphoreTake(semaforo, pdMS_TO_TICKS(500)) == pdTRUE)
+        {
+            vTaskDelay(pdMS_TO_TICKS(RETARDO_VERDE / 2));
+            gpio_set_level(PIN_VERDE, 1);
+
+            ESP_LOGI(LOG_TAG, "LED Verde encendido tras semáforo");
+
+            vTaskDelay(pdMS_TO_TICKS(RETARDO_VERDE / 2));
+            gpio_set_level(PIN_VERDE, 0);
+        }
+        else
+        {
+            ESP_LOGE(LOG_TAG, "Timeout esperando semáforo");
+        }
+    }
+}
