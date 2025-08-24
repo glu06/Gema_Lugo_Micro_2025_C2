@@ -1,0 +1,63 @@
+#include <stdio.h>
+#include <stdlib.h>
+
+int main()
+{
+    int filas = 5;
+    int columnas = 5;
+    int *bloque;
+    int **matriz;
+    int i, j;
+
+    // Reserva memoria para el arreglo de punteros a filas
+    matriz = (int **) malloc(filas * sizeof(int *));
+    if (matriz == NULL)
+    {
+        printf("Error asignando memoria para punteros de filas\n");
+        return 1;
+    }
+
+    // Reserva un solo bloque contiguo para todos los elementos
+    bloque = (int *) malloc(filas * columnas * sizeof(int));
+    if (bloque == NULL)
+    {
+        printf("Error asignando memoria para los datos\n");
+        free(matriz);
+        return 1;
+    }
+
+    // Asignar punteros de filas dentro del bloque contiguo
+    for (i = 0; i < filas; i++)
+    {
+        matriz[i] = bloque + i * columnas;
+    }
+
+    // Inicializar matriz
+    for (i = 0; i < filas; i++)
+    {
+        for (j = 0; j < columnas; j++)
+        {
+            matriz[i][j] = i + j;
+        }
+    }
+
+    // Imprimir matriz
+    for (i = 0; i < filas; i++)
+    {
+        for (j = 0; j < columnas; j++)
+        {
+            printf("%3d ", matriz[i][j]);
+        }
+        printf("\n");
+    }
+
+    // Liberar memoria
+    free(bloque);
+    free(matriz);
+
+    return 0;
+}
+
+
+
+
