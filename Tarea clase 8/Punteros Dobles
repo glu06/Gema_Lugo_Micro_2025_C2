@@ -1,0 +1,56 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+void llenarArreglo(void *arreglo, size_t elemSize, int cantidad);
+void *crearArregloGenerico(size_t elemSize, int cantidad);
+void imprimirArregloEnteros(void *arreglo, int cantidad);
+
+int main()
+{
+    int *puntero = NULL;
+    int cantidad = 10;
+
+    puntero = (int *)crearArregloGenerico(sizeof(int), cantidad);
+    if (puntero == NULL)
+    {
+        printf("Error asignando memoria\n");
+        return 1;
+    }
+
+    llenarArreglo(puntero, sizeof(int), cantidad);
+    imprimirArregloEnteros(puntero, cantidad);
+
+    free(puntero);
+    return 0;
+}
+
+// Llena el arreglo de enteros con valores: índice * 7
+void llenarArreglo(void *arreglo, size_t elemSize, int cantidad)
+{
+    int *arrInt = (int *)arreglo;
+    for (int i = 0; i < cantidad; i++)
+    {
+        arrInt[i] = i * 7;
+    }
+}
+
+// Crea un arreglo genérico dinámico con malloc
+void *crearArregloGenerico(size_t elemSize, int cantidad)
+{
+    void *ptr = malloc(elemSize * cantidad);
+    return ptr;
+}
+
+// Imprime un arreglo de enteros
+void imprimirArregloEnteros(void *arreglo, int cantidad)
+{
+    int *arrInt = (int *)arreglo;
+    for (int i = 0; i < cantidad; i++)
+    {
+        printf("<%d> ", arrInt[i]);
+    }
+    printf("\n");
+}
+
+
