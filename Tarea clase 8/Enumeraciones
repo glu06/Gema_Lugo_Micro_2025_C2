@@ -1,0 +1,28 @@
+#include <stdio.h>
+
+int main(void)
+{
+    // Lista de días de la semana
+    const char *dias[] = {
+        "Domingo",
+        "Lunes",
+        "Martes",
+        "Miércoles",
+        "Jueves",
+        "Viernes",
+        "Sábado"
+    };
+
+    int diaActual = 5; // 0=Domingo, 1=Lunes, ..., 5=Viernes, 6=Sábado
+
+    if (diaActual >= 0 && diaActual <= 6)
+    {
+        printf("Hoy es %s\n", dias[diaActual]);
+    }
+    else
+    {
+        printf("Día no válido\n");
+    }
+
+    return 0;
+}
