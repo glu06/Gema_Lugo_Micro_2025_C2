@@ -1,0 +1,18 @@
+#include <stdio.h>
+
+int main()
+{
+    int num = 1;
+    int contador;
+    int *ptr = &num;
+
+    printf("Direccion inicial de num: %p\n\n", (void*)&num);
+
+    for (contador = 0; contador < 6; contador++)
+    {
+        printf("Posicion %d -> direccion: %p | valor: %d\n", contador, (void*)ptr, *ptr);
+        ptr++;
+    }
+
+    return 0;
+}
