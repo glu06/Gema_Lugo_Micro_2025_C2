@@ -1,0 +1,93 @@
+#include <stdio.h>
+#include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
+#include "esp_log.h"
+#include "driver/gpio.h"
+
+
+#define PIN_ROJO    33
+#define PIN_VERDE   25
+#define PIN_AZUL    26
+
+#define DELAY_ROJO_MS   1000
+#define DELAY_VERDE_MS   50
+#define DELAY_AZUL_MS   4000
+
+#define STACK_TAM   (1024 * 2)
+
+const char *LOG_TAG = "LED_Control";
+
+void configurarLeds(void);
+void tareaUnica(void *param);
+
+void app_main(void)
+{
+    configurarLeds();
+
+    xTaskCreatePinnedToCore(tareaUnica,
+                            "tareaUnica",
+                            STACK_TAM,
+                            NULL,
+                            1,
+                            NULL,
+                            tskNO_AFFINITY);
+
+    while(1)
+    {
+        vTaskDelay(pdMS_TO_TICKS(500));
+        printf("Mensaje principal\n");
+        printf("Núcleos disponibles: %i\n", portNUM_PROCESSORS);
+    }
+}
+
+void configurarLeds(void)
+{
+    gpio_reset_pin(PIN_ROJO);
+    gpio_set_direction(PIN_ROJO, GPIO_MODE_OUTPUT);
+
+    gpio_reset_pin(PIN_VERDE);
+    gpio_set_direction(PIN_VERDE, GPIO_MODE_OUTPUT);
+
+    gpio_reset_pin(PIN_AZUL);
+    gpio_set_direction(PIN_AZUL, GPIO_MODE_OUTPUT);
+}
+
+void tareaUnica(void *param)
+{
+    TickType_t tiempoRojo = 0, tiempoVerde = 0, tiempoAzul = 0;
+
+    while(1)
+    {
+        TickType_t ahora = xTaskGetTickCount();
+
+        // LED Rojo: alterna cada DELAY_ROJO_MS
+        if (ahora - tiempoRojo >= pdMS_TO_TICKS(DELAY_ROJO_MS))
+        {
+            int estado = gpio_get_level(PIN_ROJO);
+            gpio_set_level(PIN_ROJO, !estado);
+            tiempoRojo = ahora;
+            ESP_LOGI(LOG_TAG, "LED Rojo cambio estado a %d", !estado);
+        }
+
+        // LED Verde: alterna cada DELAY_VERDE_MS
+        if (ahora - tiempoVerde >= pdMS_TO_TICKS(DELAY_VERDE_MS))
+        {
+            int estado = gpio_get_level(PIN_VERDE);
+            gpio_set_level(PIN_VERDE, !estado);
+            tiempoVerde = ahora;
+            ESP_LOGW(LOG_TAG, "LED Verde cambio estado a %d", !estado);
+        }
+
+        // LED Azul: alterna cada DELAY_AZUL_MS
+        if (ahora - tiempoAzul >= pdMS_TO_TICKS(DELAY_AZUL_MS))
+        {
+            int estado = gpio_get_level(PIN_AZUL);
+            gpio_set_level(PIN_AZUL, !estado);
+            tiempoAzul = ahora;
+            ESP_LOGE(LOG_TAG, "LED Azul cambio estado a %d", !estado);
+        }
+
+        // Pequeña espera para no saturar la CPU
+        vTaskDelay(pdMS_TO_TICKS(10));
+    }
+}
